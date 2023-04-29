@@ -1,5 +1,9 @@
-﻿Public Class Form1
+﻿'Imports jfwapi
+Imports JFWAPICTRLLib
+Public Class Form1
 	Dim con As New Process()
+	Dim WithEvents jfw As New JFWApi
+	Dim outputText As String
 	Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 		con.StartInfo = New ProcessStartInfo
 		con.StartInfo.FileName = "python.exe"
@@ -21,6 +25,7 @@
 	Private Sub Process_OutputDataReceived(sender As Object, e As DataReceivedEventArgs)
 		If e.Data IsNot Nothing Then
 			outputBox.AppendText(e.Data & Environment.NewLine)
+			jfw.SayString(e.Data, 0)
 		End If
 	End Sub
 
@@ -42,12 +47,10 @@
 			End If
 		End If
 	End Sub
-
 	Private Sub Form1_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
 		con.Kill()
 		con.Dispose()
 	End Sub
-
 	Private Sub Form1_KeyDown(sender As Object, e As KeyEventArgs) Handles MyBase.KeyDown
 		If e.KeyCode = Keys.Escape Then
 			Me.Close()
