@@ -1,30 +1,24 @@
-﻿'Imports jfwapi
+﻿Imports processPicker
 Imports JFWAPICTRLLib
 Public Class Form1
-	Dim con As New Process()
-	Dim WithEvents jfw As New JFWApi
-	Dim outputText As String
+	Dim jfw As New JFWApi
 	Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-		con.StartInfo = New ProcessStartInfo
-		con.StartInfo.FileName = "python.exe"
-		con.StartInfo.WorkingDirectory = "C:"
-		con.StartInfo.Arguments = "-i"
-		con.StartInfo.UseShellExecute = False
-		con.StartInfo.RedirectStandardInput = True
-		con.StartInfo.RedirectStandardOutput = True
-		con.StartInfo.RedirectStandardError = True
-		con.StartInfo.CreateNoWindow = True
-		AddHandler con.OutputDataReceived, AddressOf Process_OutputDataReceived
-		AddHandler con.ErrorDataReceived, AddressOf Process_OutputDataReceived
-		con.Start()
-		con.BeginOutputReadLine()
-		con.BeginErrorReadLine()
-		con.StandardInput.AutoFlush = True
+		processPicker.runConsole("python", "-i")
+		AddHandler processPicker.con.OutputDataReceived, AddressOf Process_OutputDataReceived
+		AddHandler processPicker.con.ErrorDataReceived, AddressOf Process_errorDataReceived
 	End Sub
 
 	Private Sub Process_OutputDataReceived(sender As Object, e As DataReceivedEventArgs)
 		If e.Data IsNot Nothing Then
 			outputBox.AppendText(e.Data & Environment.NewLine)
+			jfw.SayString(e.Data, 0)
+		End If
+	End Sub
+
+	Private Sub Process_errorDataReceived(sender As Object, e As DataReceivedEventArgs)
+		If e.Data IsNot Nothing Then
+			outputBox.AppendText(e.Data & Environment.NewLine)
+			My.Computer.Audio.Play("InconsistencyBuzzer.wav")
 			jfw.SayString(e.Data, 0)
 		End If
 	End Sub
@@ -36,35 +30,45 @@ Public Class Form1
 			Dim lines() As String = inputBox.Lines
 			Dim index As Integer = inputBox.GetLineFromCharIndex(inputBox.SelectionStart)
 			Dim Input As String = inputBox.Lines(index)
-			con.StandardInput.WriteLine(Input)
+			processPicker.con.StandardInput.WriteLine(Input)
 			If Input <> "" Then
 				outputBox.AppendText(Input & Environment.NewLine)
 				If index <> lines.Length - 1 Then
 					e.SuppressKeyPress = True
+					inputBox.AppendText(Input & Environment.NewLine)
 				End If
 			Else
 				e.SuppressKeyPress = True
 			End If
 		End If
 	End Sub
+
 	Private Sub Form1_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-		con.Kill()
-		con.Dispose()
+		processPicker.con.Kill()
+		processPicker.con.Dispose()
 	End Sub
-	Private Sub Form1_KeyDown(sender As Object, e As KeyEventArgs) Handles MyBase.KeyDown
-		If e.KeyCode = Keys.Escape Then
-			Me.Close()
-		ElseIf e.Control AndAlso e.KeyCode = Keys.S Then
-			Dim filePath As String
-			Dim choice As New SaveFileDialog
-			If choice.ShowDialog = DialogResult.OK Then
-				filePath = choice.FileName
-				Dim content As String = outputBox.Text
-				System.IO.File.WriteAllText(filePath, content)
-			End If
-		ElseIf e.Control And e.KeyCode = Keys.L Then
-			outputBox.Clear()
-			inputBox.Clear()
+
+	Private Sub saveItem_Click(sender As Object, e As EventArgs) Handles saveItem.Click
+		Dim choice As New SaveFileDialog
+		If choice.ShowDialog = DialogResult.OK Then System.IO.File.WriteAllText(choice.FileName, outputBox.Text)
+	End Sub
+
+	Private Sub exitItem_Click(sender As Object, e As EventArgs) Handles exitItem.Click
+		Me.DestroyHandle()
+	End Sub
+
+	Private Sub copyInputItem_Click(sender As Object, e As EventArgs) Handles copyInputItem.Click
+
+		If inputBox.SelectedText.Length = 0 Then
+			inputBox.SelectAll()
+			inputBox.Copy()
+			inputBox.DeselectAll()
+		Else
+			inputBox.Copy()
 		End If
+	End Sub
+
+	Private Sub switchConsole_Click(sender As Object, e As EventArgs) Handles switchConsole.Click
+		switchConsoleDLG.ShowDialog()
 	End Sub
 End Class
